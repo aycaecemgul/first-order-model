@@ -4,14 +4,13 @@ import os, sys
 import yaml
 from argparse import ArgumentParser
 from tqdm import tqdm
-
+import cv2
 import imageio
 import numpy as np
 from skimage.transform import resize
 from skimage import img_as_ubyte
 import torch
 from sync_batchnorm import DataParallelWithCallback
-
 from modules.generator import OcclusionAwareGenerator
 from modules.keypoint_detector import KPDetector
 from animate import normalize_kp
@@ -24,7 +23,7 @@ if sys.version_info[0] < 3:
 def load_checkpoints(config_path, checkpoint_path, cpu=False):
 
     with open(config_path) as f:
-        config = yaml.load(f)
+        config = yaml.safe_load(f)
 
     generator = OcclusionAwareGenerator(**config['model_params']['generator_params'],
                                         **config['model_params']['common_params'])
@@ -77,8 +76,10 @@ def make_animation(source_image, driving_video, generator, kp_detector, relative
             predictions.append(np.transpose(out['prediction'].data.cpu().numpy(), [0, 2, 3, 1])[0])
     return predictions
 
+
 def find_best_frame(source, driving, cpu=False):
     import face_alignment
+
 
     def normalize_kp(kp):
         kp = kp - kp.mean(axis=0, keepdims=True)
@@ -128,7 +129,7 @@ if __name__ == "__main__":
 
     opt = parser.parse_args()
 
-    source_image = imageio.imread(opt.source_image)
+    source_image = cv2.imread(opt.source_image)
     reader = imageio.get_reader(opt.driving_video)
     fps = reader.get_meta_data()['fps']
     driving_video = []
